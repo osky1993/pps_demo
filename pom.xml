@@ -19,6 +19,7 @@
         <module>ppc-dp</module>
         <module>ppc-e2e</module>
         <module>ppc-bench</module>
+        <module>platform/ppc-platform-core</module>
     </modules>
 
     <properties>
@@ -89,6 +90,11 @@
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
                 <version>5.14.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>2.2.224</version>
             </dependency>
 
             <dependency>
