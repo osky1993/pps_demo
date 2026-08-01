@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ppcdemo</groupId>
+        <artifactId>ppc-demo</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ppc-platform-server</artifactId>
+    <name>ppc-platform-server</name>
+    <description>节点进程（M2.5 #3）：控制面 mTLS 服务 + 管理面 REST（loopback）+ CLI。
+        本 JVM 不加载 preview 类（引擎经字符串类名子进程拉起），运行时 classpath 需含 ppc-engine-psi。</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-platform-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- 仅运行时：子进程引擎的类路径来源，编译期零引用 -->
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-engine-psi</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+</project>

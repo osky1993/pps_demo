@@ -1,7 +1,5 @@
-package com.ppcdemo.engine.psi;
+package com.ppcdemo.platform.core.psi;
 
-import com.ppcdemo.platform.core.psi.EngineRunner;
-import com.ppcdemo.platform.core.psi.ProtocolTlsProfile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,6 +13,9 @@ import java.util.concurrent.TimeUnit;
  * javaBin/classpath 由节点配置注入（生产=JDK17 路径 + 引擎发布包；测试=当前 JVM 同款）。
  */
 public final class SubprocessPsiEngineRunner implements EngineRunner {
+
+    /** 引擎入口以字符串引用：本类（及其所在 JVM）不加载 preview 编译的引擎类。 */
+    private static final String ENGINE_MAIN_CLASS = "com.ppcdemo.engine.psi.PsiEngineMain";
 
     private final String javaBin;
     private final String classpath;
@@ -75,14 +76,18 @@ public final class SubprocessPsiEngineRunner implements EngineRunner {
             long begin = System.nanoTime();
             Process process = new ProcessBuilder(List.of(javaBin,
                     "--enable-preview", "--add-modules", "jdk.incubator.vector", "-Xmx8g",
-                    "-cp", classpath, PsiEngineMain.class.getName(), jobFile.toString()))
+                    "-cp", classpath, ENGINE_MAIN_CLASS, jobFile.toString()))
                     .redirectErrorStream(true)
                     .redirectOutput(logFile.toFile())
                     .start();
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                return new EngineResult(-1, timeoutSeconds * 1000, "引擎超时被终止");
+                process.waitFor(5, TimeUnit.SECONDS);
+                String partialLog = Files.exists(logFile) ? Files.readString(logFile) : "<无日志>";
+                return new EngineResult(-1, timeoutSeconds * 1000,
+                        "引擎超时被终止；日志尾部：" + partialLog.substring(
+                                Math.max(0, partialLog.length() - 1500)));
             }
             long elapsed = (System.nanoTime() - begin) / 1_000_000;
             String log = Files.readString(logFile);

@@ -58,6 +58,12 @@ public final class PsiEngineMain {
                         role, job.getProperty("tlsListenPort"), job.getProperty("tlsPeer"));
             }
 
+            if ("client".equals(role)) {
+                // mpc4j RobustNettyRpc 的发送通道在对方未监听时首发失败后即死（重发被静默丢弃），
+                // 因此 client 必须先确认对方端口可达再进入 connect() 握手（启动时序解耦）。
+                awaitPeerReachable(peer, 120_000);
+            }
+
             if ("server".equals(role)) {
                 var result = NettyPsiRunner.runServer(protocol, ids, peerSize, local, peer);
                 System.out.printf("engine[server] done: %d ms, sent %d B%n",
@@ -96,6 +102,22 @@ public final class PsiEngineMain {
     private static int freeLoopbackPort() throws IOException {
         try (ServerSocket socket = new ServerSocket(0)) {
             return socket.getLocalPort();
+        }
+    }
+
+    private static void awaitPeerReachable(NettyPsiRunner.Endpoint peer, long timeoutMillis)
+            throws IOException, InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (true) {
+            try (java.net.Socket probe = new java.net.Socket()) {
+                probe.connect(new java.net.InetSocketAddress(peer.host(), peer.port()), 2_000);
+                return;
+            } catch (IOException notYet) {
+                if (System.currentTimeMillis() > deadline) {
+                    throw new IOException("对方协议端点不可达：" + peer.host() + ":" + peer.port(), notYet);
+                }
+                Thread.sleep(500);
+            }
         }
     }
 

@@ -20,6 +20,7 @@
         <module>ppc-e2e</module>
         <module>ppc-bench</module>
         <module>platform/ppc-platform-core</module>
+        <module>platform/ppc-platform-server</module>
         <module>engine/ppc-engine-psi</module>
     </modules>
 
@@ -96,6 +97,13 @@
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
                 <version>2.2.224</version>
+            </dependency>
+            <!-- 版本仲裁：mpc4j 线上协议由 protobuf 3.21 gencode 生成，Google DP 传递 4.30 会导致
+                 引擎收包反序列化抛异常（M2.5 #3 排障结论）。DP 的加噪路径不使用 protobuf 序列化。 -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>3.21.12</version>
             </dependency>
 
             <dependency>

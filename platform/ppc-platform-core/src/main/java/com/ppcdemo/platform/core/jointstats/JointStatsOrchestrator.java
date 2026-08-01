@@ -123,7 +123,10 @@ public final class JointStatsOrchestrator {
             EngineRunner.EngineResult result = engine.run(job);
             Files.deleteIfExists(idsFile);
             if (!result.success()) {
-                throw new IllegalStateException("PSI 引擎失败：exit=" + result.exitCode());
+                String logTail = result.log() == null ? "" : result.log()
+                        .substring(Math.max(0, result.log().length() - 600));
+                throw new IllegalStateException(
+                        "PSI 引擎失败：exit=%d，日志尾部：%s".formatted(result.exitCode(), logTail));
             }
             audit.append(taskId, selfParty, "PSI_COMPLETED",
                     "{\"elapsedMillis\": %d}".formatted(result.elapsedMillis()));
