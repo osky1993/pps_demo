@@ -23,6 +23,10 @@
             <groupId>com.ppcdemo</groupId>
             <artifactId>ppc-dp</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-phe</artifactId>
+        </dependency>
         <!-- 开发/测试用嵌入库；生产 PostgreSQL，SQL 保持两者兼容子集 -->
         <dependency>
             <groupId>com.h2database</groupId>
