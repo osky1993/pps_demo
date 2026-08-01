@@ -1,0 +1,37 @@
+# FATE-Serving 在线推理编排（M3-S3，已验证：三组件起立 + zk 注册 + proxy 推理端点可达）。
+# 用法：docker compose -f deploy/fate/docker-compose-serving.yml up -d
+# 与 FATE 训练侧的接线（service_conf.yaml servings → proxy:8059）见 M3 部署手册。
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    platform: linux/amd64
+    container_name: ppc-zk
+    ports: ["2181:2181"]
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: "srvr,stat,ruok"
+
+  serving-server:
+    image: federatedai/serving-server:2.1.6-release
+    platform: linux/amd64
+    container_name: ppc-serving-server
+    depends_on: [zookeeper]
+    ports: ["8000:8000"]
+    # 镜像内 conf/serving-server.properties 默认 zk.url=localhost:2181，需指向服务名
+    command: >
+      bash -c "sed -i 's|^zk.url=.*|zk.url=zookeeper:2181|' conf/serving-server.properties &&
+               java -cp 'conf/:lib/*:extension/*:fate-serving-server.jar'
+               com.webank.ai.fate.serving.Bootstrap -c conf/serving-server.properties"
+
+  serving-proxy:
+    image: federatedai/serving-proxy:2.1.6-release
+    platform: linux/amd64
+    container_name: ppc-serving-proxy
+    depends_on: [serving-server]
+    ports: ["8059:8059", "8869:8869"]
+    # coordinator = 本方 party id；useZkRouter 让 proxy 经 zk 发现 serving-server
+    command: >
+      bash -c "sed -i 's|^zk.url=.*|zk.url=zookeeper:2181|;
+                       s|^#coordinator=9999|coordinator=9999|;
+                       s|^#useZkRouter=.*|useZkRouter=true|' conf/application.properties &&
+               java -cp 'conf/:lib/*:fate-serving-proxy.jar'
+               com.webank.ai.fate.serving.proxy.bootstrap.Bootstrap -c conf/application.properties"
