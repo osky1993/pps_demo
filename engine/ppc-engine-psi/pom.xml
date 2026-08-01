@@ -24,6 +24,13 @@
             <artifactId>ppc-platform-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 测试用：M5 gateway 活体集成（gateway → 真实 PIR 端到端） -->
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-platform-gateway</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

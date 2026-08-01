@@ -1,0 +1,26 @@
+# 测试用能力目录（M5 §4）：业务系统只见能力，技术参数全部预置于此
+capabilities:
+  - id: credit-check
+    displayName: "共同客户信用核验"
+    mode: SYNC_QUERY
+    taskType: PIR_QUERY
+    protocol: pai_cks
+    partner: B-bureau
+    dataset: csv://B/credit-scores
+    outputGranularity: INTERSECTION_DETAIL
+    valueBits: 128
+    quota:
+      datasetDaily: 100000
+      perAppDaily: 5
+
+  - id: joint-consumption-stats
+    displayName: "联合消费统计"
+    mode: ASYNC_JOB
+    taskType: JOINT_STATS
+    protocol: rr22
+    partner: B-shop
+    dataset: ds://A/customers
+    outputGranularity: NOISED_SCALAR
+    quota:
+      datasetDaily: 100
+      perAppDaily: 10

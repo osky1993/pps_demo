@@ -318,6 +318,31 @@ capability:
 
 ---
 
+## P1 实施纪要（2026-08-02）
+
+新增 `ppc-platform-gateway` 模块（纯 JDK 17，依赖 platform-core），落地 G1–G6：
+
+| 组件 | 修的缺口 | 说明 |
+|---|---|---|
+| `PpsGatewayServer` | G1 | 绑定可配置 host（默认 0.0.0.0），跨机可达 |
+| `HmacSigner` + `AppAuthenticator` + `AppRegistry` | G2 | HMAC-SHA256 请求签名 + 重放窗口 + 常量时间比较；**密钥经 M2.5 信封加密入库**（DB 泄露不足以伪造，还需主密钥） |
+| `IdempotencyStore` | G4 | INSERT-first 认领，与配额预扣同事务；重放返回原结果、不重复执行/扣费 |
+| `AppDailyQuota` | G5 | 应用级日配额（键含日期天然日切），复用 BudgetCenter 行锁 |
+| `pps_*` 表 + appId 审计 | G5 | 审计回答「哪个业务系统、凭哪个请求、调了哪个能力」——绝不含查询键 |
+| `CapabilityCatalog` + `QueryGateway` | G6/§4 | 能力目录驱动；同步查询 fast-path；结果内联交付 |
+| `PpsClient` | §3.6 | Java SDK v0：签名/超时/错误分类（4xx 不重试、5xx 可重试） |
+
+**一处设计修正（比原设计更正确）**：原设计把「双层配额」都放 gateway，实现时发现——
+数据集级配额若由 gateway 拥有，则**绕过 gateway 即绕过治理**，违背红线 R1。
+故修正为：**应用级配额留 gateway（接入 concern），数据集级配额留 orchestrator（治理 concern，任何入口都强制）**。
+双层依旧生效，只是各落在正确的层。这正是"服务化不得成为后门"在代码层的体现。
+
+**门禁**：gateway 接入层 7 项 + HTTP 往返 3 项 + **活体门禁**（业务系统 → Gateway → 真实 PIR
+→ 返回 user-7 真值 score-607，appId 入审计、查询键不入审计、征信方 `queryContentVisible:false`）。
+全量 84 项测试全绿。
+
+---
+
 ## 7. 结论
 
 PPS 具备成为隐私计算底座的**内核条件**，缺口集中在接入层且均为加法改造（G1–G6）。

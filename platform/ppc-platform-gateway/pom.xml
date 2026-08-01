@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ppcdemo</groupId>
+        <artifactId>ppc-demo</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ppc-platform-gateway</artifactId>
+    <name>ppc-platform-gateway</name>
+    <description>M5 接入层：业务系统调用隐私计算能力的底座外壳。认证/授权/幂等/双层配额/能力目录/
+        同步查询 fast-path/结果交付/审计-with-appId。纯 JDK 17，协议执行委托既有编排（不绕治理内核）。</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-platform-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

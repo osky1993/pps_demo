@@ -56,6 +56,37 @@ CREATE TABLE IF NOT EXISTS model_registry (
     updated_at    TIMESTAMP    NOT NULL
 );
 
+-- ── M5 底座服务化：接入层三表（与治理内核正交，不改内核语义）──
+
+-- 接入应用（业务系统身份）
+CREATE TABLE IF NOT EXISTS pps_application (
+    app_id        VARCHAR(64)  PRIMARY KEY,
+    app_name      VARCHAR(128) NOT NULL,
+    secret_sealed VARCHAR(512) NOT NULL,        -- HMAC 密钥经节点信封加密（DB 泄露不足以伪造，还需主密钥）
+    state         VARCHAR(16)  NOT NULL,        -- ACTIVE | SUSPENDED
+    created_at    TIMESTAMP    NOT NULL
+);
+
+-- 授权：应用 × 能力（业务系统只见能力，不见底层任务类型/协议/ε）
+CREATE TABLE IF NOT EXISTS pps_app_grant (
+    app_id        VARCHAR(64) NOT NULL,
+    capability_id VARCHAR(64) NOT NULL,
+    daily_limit   INT,                          -- 应用级日调用上限（与数据集级配额叠加）
+    PRIMARY KEY (app_id, capability_id)
+);
+
+-- 幂等台账：业务系统的 reqId 唯一，重放返回原结果（副作用不可逆，幂等是正确性要求）
+CREATE TABLE IF NOT EXISTS pps_request (
+    app_id     VARCHAR(64)  NOT NULL,
+    req_id     VARCHAR(128) NOT NULL,
+    capability VARCHAR(64)  NOT NULL,
+    task_id    VARCHAR(64),
+    state      VARCHAR(16)  NOT NULL,           -- ACCEPTED | SUCCEEDED | FAILED
+    result_ref VARCHAR(2048),
+    created_at TIMESTAMP    NOT NULL,
+    PRIMARY KEY (app_id, req_id)
+);
+
 -- append-only 审计事件 + 哈希链（篡改即断链）
 CREATE TABLE IF NOT EXISTS audit_event (
     seq        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

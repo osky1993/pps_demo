@@ -22,6 +22,7 @@
         <module>platform/ppc-platform-core</module>
         <module>platform/ppc-platform-server</module>
         <module>platform/ppc-platform-fate</module>
+        <module>platform/ppc-platform-gateway</module>
         <module>engine/ppc-engine-psi</module>
     </modules>
 
