@@ -1,0 +1,27 @@
+# M1 PoC 统一配置（结构说明见 docs/M1-PoC详细设计与开发实现计划.md 附录 A）
+party:
+  role: server            # server | client
+  local: 0.0.0.0:9001
+  peer: 127.0.0.1:9002
+
+dataset:
+  profile: S              # S(1万) | M(100万) | L(1000万)
+  seed: 20260801          # 固定种子保证可复现
+  intersectionRatio: 0.50
+
+psi:
+  protocol: rr22          # rr22 | kkrt16
+
+phe:
+  keyBits: 2048           # 2048 | 3072
+  parallelism: 8
+
+dp:
+  epsilon: 1.0
+  clampLower: 0
+  clampUpper: 100000      # 单条记录贡献上界（分）
+  budgetTotal: 10.0
+
+bench:
+  repeat: 5
+  outputCsv: ./bench-result.csv

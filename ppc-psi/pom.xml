@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ppcdemo</groupId>
+        <artifactId>ppc-demo</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ppc-psi</artifactId>
+    <name>ppc-psi</name>
+    <description>PoC-1：mpc4j 两方 PSI（RR22 首选 / KKRT16 对照）</description>
+
+    <!--
+      W1 构建结论（2026-08-01）：
+      1. mpc4j 未发布 Maven Central，先源码构建：
+           cd third_party/mpc4j
+           JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn install -DskipTests -pl mpc4j-s2pc-pso -am
+      2. mpc4j 以「release 17 + ==enable-preview」编译（并依赖 jdk.incubator.vector 孵化模块），
+         因此本模块（含依赖它的模块）必须：
+           - 用 JDK 17 构建（javac 21 拒绝 release 17 + preview 组合）
+           - 编译与运行都带 ==enable-preview ==add-modules jdk.incubator.vector
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>edu.alibaba</groupId>
+            <artifactId>mpc4j-s2pc-pso</artifactId>
+            <version>${mpc4j.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                        <arg>--add-modules=jdk.incubator.vector</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--enable-preview --add-modules jdk.incubator.vector</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>require-jdk17</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[17,18)</version>
+                                    <message>ppc-psi 依赖 mpc4j 的 preview 产物，必须用 JDK 17 构建（见 pom 顶部说明）</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
