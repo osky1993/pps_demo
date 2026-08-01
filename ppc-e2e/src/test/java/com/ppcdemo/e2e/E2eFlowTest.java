@@ -47,8 +47,8 @@ class E2eFlowTest {
         assertEquals(expected, trueSum, "密态聚合必须与明文对照一致");
 
         double released = partyA.noisedForRelease("test", trueSum, 1.0, clampUpper);
-        // ε=1、敏感度 1e5 的拉普拉斯噪声，对 ~2.5e8 分的总额相对误差应远小于 1%（P(>7e5)≈e^-7）
-        assertTrue(Math.abs(released - trueSum) < trueSum * 0.01,
+        // ε=1、敏感度 1e5：噪声尺度 b=1e5，|noise|>20b 概率 e^-20≈2e-9，断言统计稳健
+        assertTrue(Math.abs(released - trueSum) < 20 * clampUpper,
                 "出库值偏差异常：" + released + " vs " + trueSum);
         assertEquals(9.0, ledger.remaining("test"), 1e-9, "预算应已扣减 ε=1");
     }

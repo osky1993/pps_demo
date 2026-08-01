@@ -32,6 +32,7 @@ class MtlsChannelTest {
     static SSLContext nodeA;
     static SSLContext nodeB;
     static MtlsNegotiationServer server;
+    static com.ppcdemo.platform.core.data.BlockingDataStore storeB;
 
     @BeforeAll
     static void setupCerts() throws Exception {
@@ -45,8 +46,9 @@ class MtlsChannelTest {
                 certDir.resolve("nodeA-trust.p12"));
         nodeB = TlsContexts.build(certDir.resolve("nodeB.p12"), "changeit".toCharArray(),
                 certDir.resolve("nodeB-trust.p12"));
+        storeB = new com.ppcdemo.platform.core.data.BlockingDataStore();
         server = new MtlsNegotiationServer(0, nodeB,
-                contract -> PeerChannel.Decision.approve());
+                contract -> PeerChannel.Decision.approve(), storeB);
     }
 
     @AfterAll
@@ -81,6 +83,27 @@ class MtlsChannelTest {
                 HttpRequest.newBuilder(URI.create("https://localhost:" + server.port() + "/negotiation/propose"))
                         .POST(HttpRequest.BodyPublishers.ofString("x")).build(),
                 HttpResponse.BodyHandlers.ofString()), "无客户端证书必须握手失败");
+    }
+
+    @Test
+    void 数据端点推送落对方存储且取走即删() {
+        var channelA = new MtlsDataChannel("https://localhost:" + server.port(), nodeA,
+                new com.ppcdemo.platform.core.data.BlockingDataStore());
+        byte[] payload = "pubkey-bytes-测试".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        channelA.put("t-data", "pubkey", payload);
+
+        assertTrue(java.util.Arrays.equals(payload, storeB.take("t-data", "pubkey", 10)),
+                "B 本地取件必须与 A 推送一致");
+        assertThrows(IllegalStateException.class, () -> storeB.take("t-data", "pubkey", 1),
+                "取走即删：二次取件应超时");
+    }
+
+    @Test
+    void 数据端点非法路径被拒() {
+        var channelA = new MtlsDataChannel("https://localhost:" + server.port(), nodeA,
+                new com.ppcdemo.platform.core.data.BlockingDataStore());
+        assertThrows(IllegalStateException.class,
+                () -> channelA.put("", "", new byte[]{1}), "空 taskId/key 应 4xx 拒绝");
     }
 
     @Test
