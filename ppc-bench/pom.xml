@@ -23,6 +23,18 @@
             <artifactId>ppc-dp</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-platform-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- 仅运行时：引擎子进程类路径来源 -->
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-engine-psi</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
         </dependency>
