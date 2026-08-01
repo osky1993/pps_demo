@@ -23,7 +23,11 @@ BIND_FIXED=false
 for i in $(seq 1 60); do
   if docker exec "$NAME" bash -c "curl -s -m 5 -X POST http://localhost:9380/v1/version/get -H 'Content-Type: application/json' -d '{}'" 2>/dev/null | grep -q '"retcode":0'; then
     if [ "$BIND_FIXED" = false ]; then
-      docker exec "$NAME" bash -c "sed -i 's/host: 127.0.0.1/host: 0.0.0.0/' /data/projects/fate/conf/service_conf.yaml"
+      # 必须用容器真实 IP：0.0.0.0/127.0.0.1 都不行——该值会被写进下发给 Serving 的
+      # model transfer URL（http://<host>:9380/v1/model/transfer），0.0.0.0 在 Serving 容器内不可路由，
+      # 导致 flow model load 报 "model initialization error"（M3 B1 根因之三，配置文件注释亦有此警告）。
+      CONTAINER_IP=$(docker inspect "$NAME" --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+      docker exec "$NAME" bash -c "sed -i 's/^  host: 127.0.0.1/  host: $CONTAINER_IP/' /data/projects/fate/conf/service_conf.yaml"
       docker exec "$NAME" bash -lc "source /data/projects/fate/bin/init_env.sh && cd /data/projects/fate/fateflow && bash bin/service.sh restart" >/dev/null 2>&1
       BIND_FIXED=true
       sleep 10
