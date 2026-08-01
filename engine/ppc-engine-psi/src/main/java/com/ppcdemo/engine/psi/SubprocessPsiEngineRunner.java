@@ -1,6 +1,7 @@
 package com.ppcdemo.engine.psi;
 
 import com.ppcdemo.platform.core.psi.EngineRunner;
+import com.ppcdemo.platform.core.psi.ProtocolTlsProfile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,25 +19,46 @@ public final class SubprocessPsiEngineRunner implements EngineRunner {
     private final String javaBin;
     private final String classpath;
     private final long timeoutSeconds;
+    private final ProtocolTlsProfile tlsProfile;   // null = 明文（默认）
 
     public SubprocessPsiEngineRunner(String javaBin, String classpath, long timeoutSeconds) {
+        this(javaBin, classpath, timeoutSeconds, null);
+    }
+
+    /** 部署级 TLS 开关：传入 ProtocolTlsProfile 后，本 runner 启动的所有引擎走 mTLS 隧道。 */
+    public SubprocessPsiEngineRunner(String javaBin, String classpath, long timeoutSeconds,
+                                     ProtocolTlsProfile tlsProfile) {
         this.javaBin = javaBin;
         this.classpath = classpath;
         this.timeoutSeconds = timeoutSeconds;
+        this.tlsProfile = tlsProfile;
     }
 
-    /** 测试/单机部署便捷构造：复用当前 JVM 与 classpath。 */
+    /** 测试/单机部署便捷构造：复用当前 JVM 与 classpath（明文）。 */
     public static SubprocessPsiEngineRunner currentJvm(long timeoutSeconds) {
+        return currentJvm(timeoutSeconds, null);
+    }
+
+    public static SubprocessPsiEngineRunner currentJvm(long timeoutSeconds, ProtocolTlsProfile tls) {
         return new SubprocessPsiEngineRunner(
                 System.getProperty("java.home") + "/bin/java",
                 System.getProperty("java.class.path"),
-                timeoutSeconds);
+                timeoutSeconds, tls);
     }
 
     @Override
     public EngineResult run(EngineJob job) {
         try {
             Path jobFile = Files.createTempFile("psi-job", ".properties");
+            String tlsSection = tlsProfile == null ? "" : """
+                    tlsEnabled=true
+                    tlsKeyStore=%s
+                    tlsTrustStore=%s
+                    tlsStorePass=%s
+                    tlsListenPort=%d
+                    tlsPeer=%s
+                    """.formatted(tlsProfile.keyStore(), tlsProfile.trustStore(),
+                    tlsProfile.storePass(), tlsProfile.tlsListenPort(), tlsProfile.tlsPeer());
             Files.writeString(jobFile, """
                     role=%s
                     protocol=%s
@@ -46,7 +68,8 @@ public final class SubprocessPsiEngineRunner implements EngineRunner {
                     outputFile=%s
                     peerSize=%d
                     """.formatted(job.role(), job.protocol(), job.localEndpoint(), job.peerEndpoint(),
-                    job.idsFile(), job.outputFile() == null ? "" : job.outputFile(), job.peerSize()));
+                    job.idsFile(), job.outputFile() == null ? "" : job.outputFile(), job.peerSize())
+                    + tlsSection);
             Path logFile = Files.createTempFile("psi-engine", ".log");
 
             long begin = System.nanoTime();
