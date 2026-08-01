@@ -23,11 +23,9 @@ mpc4j 以 `release 17 + --enable-preview` 编译，javac 21 拒绝该组合，�
 运行时与编译时同为 17。因此**整个工程统一用 JDK 17 构建**（ppc-psi 配了 enforcer 拦截）。
 
 ```bash
-# 1. 先构建 mpc4j（仅首次，install 到本地 Maven 仓库）
-git clone --depth 1 --branch v1.1.5 https://github.com/alibaba-edu/mpc4j.git third_party/mpc4j
-cd third_party/mpc4j
-JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn install -DskipTests -pl mpc4j-s2pc-pso -am
-cd ../..
+# 1. 拉取 mpc4j 子模块并构建（仅首次，install 到本地 Maven 仓库）
+git submodule update --init
+JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn -f third_party/mpc4j/pom.xml install -DskipTests -pl mpc4j-s2pc-pso -am
 ```
 
 ```bash
