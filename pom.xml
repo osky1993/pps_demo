@@ -20,6 +20,7 @@
         <module>ppc-e2e</module>
         <module>ppc-bench</module>
         <module>platform/ppc-platform-core</module>
+        <module>engine/ppc-engine-psi</module>
     </modules>
 
     <properties>

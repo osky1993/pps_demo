@@ -51,8 +51,8 @@ class LocalStatsFlowTest {
         double released = service.runLocalStats(taskId, () -> trueValue);
 
         assertEquals(TaskState.SUCCEEDED, service.requireTask(taskId).state());
-        // ε=1、敏感度 1e5：偏差远小于真值 1%
-        assertTrue(Math.abs(released - trueValue) < trueValue * 0.01, "出库值偏差异常：" + released);
+        // ε=1、敏感度 1e5：噪声尺度 b=1e5，|noise|>20b 概率 e^-20≈2e-9，断言统计稳健
+        assertTrue(Math.abs(released - trueValue) < 20 * 100_000L, "出库值偏差异常：" + released);
         assertEquals(released, gateway.releasedValue(taskId).orElseThrow(), 1e-9,
                 "对外结果必须与 release_record 一致");
         assertEquals(1.0, budget.remaining("ds://local/tx"), 1e-9);
