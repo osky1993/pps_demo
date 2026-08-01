@@ -1,6 +1,7 @@
 package com.ppcdemo.platform.core.psi;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * PSI 引擎调用抽象（M2 ADR-1：引擎在独立 JDK17 进程）。
@@ -11,13 +12,25 @@ import java.nio.file.Path;
 public interface EngineRunner {
 
     record EngineJob(String role,            // server | client
-                     String protocol,        // rr22 | kkrt16
+                     String protocol,        // psi: rr22|kkrt16；pir: pai_cks|simple_naive
                      String localEndpoint,   // host:port（协议面）
                      String peerEndpoint,
-                     Path idsFile,           // 每行一个 long ID
-                     Path outputFile,        // client 侧写交集；server 侧不写
+                     Path idsFile,           // psi: 每行一个 long ID；pir: 库 CSV 或查询键
+                     Path outputFile,        // client 侧产出；server 侧不写
                      int mySize,
-                     int peerSize) {
+                     int peerSize,
+                     Map<String, String> extras) {   // 协议族扩展（M4：protocolFamily/valueBits/…）
+
+        /** 兼容构造器：PSI 族调用点无需改动。 */
+        public EngineJob(String role, String protocol, String localEndpoint, String peerEndpoint,
+                         Path idsFile, Path outputFile, int mySize, int peerSize) {
+            this(role, protocol, localEndpoint, peerEndpoint, idsFile, outputFile,
+                    mySize, peerSize, Map.of());
+        }
+
+        public EngineJob {
+            extras = extras == null ? Map.of() : Map.copyOf(extras);
+        }
     }
 
     record EngineResult(int exitCode, long elapsedMillis, String log) {

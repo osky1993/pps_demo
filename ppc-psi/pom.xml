@@ -33,6 +33,12 @@
             <artifactId>mpc4j-s2pc-pso</artifactId>
             <version>${mpc4j.version}</version>
         </dependency>
+        <!-- M4：匿踪查询。只用 cppir 系（纯 Java）；stdpir 系依赖 SEAL native，本工程不启用 -->
+        <dependency>
+            <groupId>edu.alibaba</groupId>
+            <artifactId>mpc4j-s2pc-pir</artifactId>
+            <version>${mpc4j.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

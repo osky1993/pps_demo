@@ -38,8 +38,10 @@ public final class PsiEngineMain {
             String protocol = require(job, "protocol");
             var local = NettyPsiRunner.Endpoint.parse(require(job, "local"));
             var peer = NettyPsiRunner.Endpoint.parse(require(job, "peer"));
-            long[] ids = readIds(Path.of(require(job, "idsFile")));
             int peerSize = Integer.parseInt(require(job, "peerSize"));
+            boolean pirFamily = "pir".equals(job.getProperty("protocolFamily", "psi"));
+            // PSI 族的 idsFile 是 long 列表；PIR 族是 key/CSV，故按族延后解析
+            long[] ids = pirFamily ? null : readIds(Path.of(require(job, "idsFile")));
 
             if (Boolean.parseBoolean(job.getProperty("tlsEnabled", "false"))) {
                 SSLContext ssl = TlsContexts.build(Path.of(require(job, "tlsKeyStore")),
@@ -62,6 +64,13 @@ public final class PsiEngineMain {
                 // mpc4j RobustNettyRpc 的发送通道在对方未监听时首发失败后即死（重发被静默丢弃），
                 // 因此 client 必须先确认对方端口可达再进入 connect() 握手（启动时序解耦）。
                 awaitPeerReachable(peer, 120_000);
+            }
+
+            // M4：按协议族分派（默认 psi，保持既有 job 文件向后兼容）
+            if (pirFamily) {
+                PirEngineHandler.handle(job, role, protocol, local, peer);
+                closeTunnels(inbound, outbound);
+                System.exit(0);
             }
 
             if ("server".equals(role)) {

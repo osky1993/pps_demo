@@ -70,7 +70,10 @@ public final class SubprocessPsiEngineRunner implements EngineRunner {
                     peerSize=%d
                     """.formatted(job.role(), job.protocol(), job.localEndpoint(), job.peerEndpoint(),
                     job.idsFile(), job.outputFile() == null ? "" : job.outputFile(), job.peerSize())
-                    + tlsSection);
+                    + tlsSection
+                    + job.extras().entrySet().stream()
+                            .map(e -> e.getKey() + "=" + e.getValue() + "\n")
+                            .reduce("", String::concat));
             Path logFile = Files.createTempFile("psi-engine", ".log");
 
             long begin = System.nanoTime();
