@@ -3,6 +3,7 @@ package com.ppcdemo.dp;
 import com.google.privacy.differentialprivacy.BoundedMean;
 import com.google.privacy.differentialprivacy.BoundedSum;
 import com.google.privacy.differentialprivacy.Count;
+import com.google.privacy.differentialprivacy.LaplaceNoise;
 
 /**
  * Google DP 原语的薄封装：每次调用先向 BudgetLedger 申请 ε，通过后才加噪。
@@ -40,6 +41,16 @@ public final class DpAggregator {
             sum.addEntry(v);
         }
         return sum.computeResult();
+    }
+
+    /**
+     * 对「已在别处（如密态）聚合完成的求和结果」加噪出库。
+     * BoundedSum 需要逐条 addEntry，无法用于密文域求好的和，
+     * 故直接用同源的 LaplaceNoise（L1 敏感度 = 单条记录贡献上界 clampUpper）。
+     */
+    public double noisedPreAggregatedSum(String dataset, long trueSum, double epsilon, long clampUpper) {
+        ledger.consume(dataset, epsilon);
+        return new LaplaceNoise().addNoise(trueSum, clampUpper, epsilon, null);
     }
 
     public double noisedMean(String dataset, long[] values, double epsilon, long clampLower, long clampUpper) {
