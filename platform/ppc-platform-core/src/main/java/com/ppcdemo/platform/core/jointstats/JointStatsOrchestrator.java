@@ -60,7 +60,7 @@ public final class JointStatsOrchestrator {
 
             tasks.transit(taskId, TaskState.RUNNING, TaskState.RELEASING, null);
             try {
-                double released = gateway.release(contract, trueSum, false);
+                double released = gateway.release(contract, trueSum);
                 tasks.transit(taskId, TaskState.RELEASING, TaskState.SUCCEEDED, null);
                 return released;
             } catch (RuntimeException e) {

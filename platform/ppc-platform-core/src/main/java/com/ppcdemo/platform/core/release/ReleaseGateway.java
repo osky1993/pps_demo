@@ -23,18 +23,25 @@ public final class ReleaseGateway {
     private final Database db;
     private final BudgetCenter budgetCenter;
     private final AuditCenter auditCenter;
+    private final ExceptionApprovalService exceptionApprovals;
 
     public ReleaseGateway(Database db, BudgetCenter budgetCenter, AuditCenter auditCenter) {
+        this(db, budgetCenter, auditCenter, new ExceptionApprovalService(db));
+    }
+
+    public ReleaseGateway(Database db, BudgetCenter budgetCenter, AuditCenter auditCenter,
+                          ExceptionApprovalService exceptionApprovals) {
         this.db = db;
         this.budgetCenter = budgetCenter;
         this.auditCenter = auditCenter;
+        this.exceptionApprovals = exceptionApprovals;
     }
 
-    /** @param exceptionApproved epsilon=0 例外是否已获双方审批（S4 接审批流，当前调用方显式传入） */
-    public double release(TaskContract contract, long trueValue, boolean exceptionApproved) {
+    /** 例外审批检查内置于网关：治理逻辑不依赖调用方自觉（S4 起唯一签名）。 */
+    public double release(TaskContract contract, long trueValue) {
         double epsilon = contract.epsilon();
-        if (contract.isNoiselessException() && !exceptionApproved) {
-            throw new IllegalStateException("epsilon=0 不加噪出库未经例外审批，网关拒绝");
+        if (contract.isNoiselessException() && !exceptionApprovals.fullyApproved(contract)) {
+            throw new IllegalStateException("epsilon=0 不加噪出库未获全部参与方例外审批，网关拒绝");
         }
         return db.inTransaction(conn -> {
             budgetCenter.consumeInTx(conn, contract.datasetLocal(), epsilon);

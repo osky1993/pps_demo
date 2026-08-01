@@ -59,7 +59,7 @@ public final class TaskService {
         }
         tasks.transit(taskId, TaskState.RUNNING, TaskState.RELEASING, null);
         try {
-            double released = gateway.release(contract, trueValue, false);
+            double released = gateway.release(contract, trueValue);
             tasks.transit(taskId, TaskState.RELEASING, TaskState.SUCCEEDED, null);
             return released;
         } catch (RuntimeException e) {

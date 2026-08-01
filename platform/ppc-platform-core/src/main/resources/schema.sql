@@ -33,6 +33,15 @@ CREATE TABLE IF NOT EXISTS release_record (
     released_at    TIMESTAMP NOT NULL
 );
 
+-- ε=0 不加噪出库的例外审批：契约各参与方均须审批（S4）
+CREATE TABLE IF NOT EXISTS exception_approval (
+    task_id     VARCHAR(64) NOT NULL,
+    party       VARCHAR(64) NOT NULL,
+    approver    VARCHAR(128) NOT NULL,
+    approved_at TIMESTAMP   NOT NULL,
+    PRIMARY KEY (task_id, party)
+);
+
 -- append-only 审计事件 + 哈希链（篡改即断链）
 CREATE TABLE IF NOT EXISTS audit_event (
     seq        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
