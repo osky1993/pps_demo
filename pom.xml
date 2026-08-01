@@ -83,6 +83,13 @@
                 <artifactId>differentialprivacy</artifactId>
                 <version>${google-dp.version}</version>
             </dependency>
+            <!-- jnagmp 传递的 JNA 4.x 无 arm64 原生库；强制 5.x 后配合系统 libgmp
+                 （-Djna.library.path=/opt/homebrew/lib）可启用 GMP modPow 加速 -->
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>5.14.0</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
