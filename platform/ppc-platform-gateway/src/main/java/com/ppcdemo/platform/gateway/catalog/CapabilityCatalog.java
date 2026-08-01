@@ -23,6 +23,13 @@ public final class CapabilityCatalog {
     private CapabilityCatalog() {
     }
 
+    /** 由能力列表构建（CapabilityRegistry.activeCatalog 用）。 */
+    public static CapabilityCatalog of(List<Capability> capabilities) {
+        CapabilityCatalog catalog = new CapabilityCatalog();
+        capabilities.forEach(c -> catalog.byId.put(c.id(), c));
+        return catalog;
+    }
+
     public static CapabilityCatalog fromYaml(Path yamlFile) {
         try (InputStream in = Files.newInputStream(yamlFile)) {
             return parse(new Yaml().load(in));

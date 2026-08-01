@@ -88,6 +88,32 @@ public final class PpsClient {
         return new JobHandle(p.getProperty("jobId"), p.getProperty("state"));
     }
 
+    /**
+     * SDK v1 便捷：提交并阻塞至终态、返回结果（对无法接收回调的场景，如内网批处理）。
+     * 生产在线路径应优先回调而非阻塞——本方法用于脚本/批处理。
+     */
+    public java.util.Map<String, String> awaitResult(String capability, String params,
+                                                     String requestId, long timeoutMillis) {
+        submit(capability, params, requestId, null);
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (System.currentTimeMillis() < deadline) {
+            String state = getJob(requestId).state();
+            if (state.equals("SUCCEEDED")) {
+                return getResult(requestId, 0, 10_000);
+            }
+            if (state.equals("FAILED")) {
+                throw new PpsCallException(500, "作业失败：" + requestId);
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        throw new PpsCallException(504, "等待作业超时：" + requestId);
+    }
+
     /** 轮询作业状态（回调兜底）。 */
     public JobStatus getJob(String jobId) {
         Properties p = get("/pps/v1/jobs/" + jobId, appId);

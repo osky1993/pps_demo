@@ -100,6 +100,27 @@ CREATE TABLE IF NOT EXISTS pps_job_result (
     PRIMARY KEY (app_id, req_id, line_no)
 );
 
+-- ── M5-P3 生产化：能力目录变更治理（增删改需双方审批）──
+-- 能力的每个版本独立记录；仅全部必需方审批后方 ACTIVE。业务系统只见 ACTIVE 版本。
+CREATE TABLE IF NOT EXISTS pps_capability (
+    capability_id VARCHAR(64)  NOT NULL,
+    version       INT          NOT NULL,
+    spec          VARCHAR(4096) NOT NULL,        -- 能力规格（properties 文本序列化）
+    state         VARCHAR(16)  NOT NULL,         -- PROPOSED | ACTIVE | RETIRED
+    proposer      VARCHAR(64)  NOT NULL,
+    created_at    TIMESTAMP    NOT NULL,
+    PRIMARY KEY (capability_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS pps_capability_approval (
+    capability_id VARCHAR(64)  NOT NULL,
+    version       INT          NOT NULL,
+    party         VARCHAR(64)  NOT NULL,
+    approver      VARCHAR(128) NOT NULL,
+    approved_at   TIMESTAMP    NOT NULL,
+    PRIMARY KEY (capability_id, version, party)
+);
+
 -- append-only 审计事件 + 哈希链（篡改即断链）
 CREATE TABLE IF NOT EXISTS audit_event (
     seq        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -5,6 +5,7 @@ import com.ppcdemo.platform.gateway.QueryGateway;
 import com.ppcdemo.platform.gateway.api.GatewayException;
 import com.ppcdemo.platform.gateway.api.PpsRequest;
 import com.ppcdemo.platform.gateway.job.JobRepository;
+import com.ppcdemo.platform.gateway.obs.MetricsCollector;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -30,15 +31,27 @@ public final class PpsGatewayServer implements AutoCloseable {
         this(bindHost, port, gateway, null);
     }
 
-    /** @param async 可空；非空则注册异步作业端点（M5-P2） */
     public PpsGatewayServer(String bindHost, int port, QueryGateway gateway,
                             AsyncJobGateway async) throws IOException {
+        this(bindHost, port, gateway, async, null);
+    }
+
+    /** @param async/@param metrics 均可空；非空则注册对应端点（M5-P2/P3） */
+    public PpsGatewayServer(String bindHost, int port, QueryGateway gateway,
+                            AsyncJobGateway async, MetricsCollector metrics) throws IOException {
         server = HttpServer.create(new InetSocketAddress(bindHost, port), 0);
         if (gateway != null) {
             server.createContext("/pps/v1/query", exchange -> handleQuery(exchange, gateway));
         }
         if (async != null) {
             server.createContext("/pps/v1/jobs", exchange -> handleJobs(exchange, async));
+        }
+        if (metrics != null) {
+            server.createContext("/pps/v1/metrics", exchange -> {
+                try (exchange) {
+                    respond(exchange, 200, metrics.prometheus());
+                }
+            });
         }
         server.start();
     }

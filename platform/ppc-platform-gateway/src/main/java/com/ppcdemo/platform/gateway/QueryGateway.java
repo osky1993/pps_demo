@@ -10,6 +10,7 @@ import com.ppcdemo.platform.gateway.catalog.Capability;
 import com.ppcdemo.platform.gateway.catalog.CapabilityCatalog;
 import com.ppcdemo.platform.gateway.exec.SyncQueryExecutor;
 import com.ppcdemo.platform.gateway.idem.IdempotencyStore;
+import com.ppcdemo.platform.gateway.obs.MetricsCollector;
 import com.ppcdemo.platform.gateway.quota.AppDailyQuota;
 
 import java.time.LocalDate;
@@ -42,11 +43,20 @@ public final class QueryGateway {
     private final SyncQueryExecutor executor;
     private final String selfParty;
     private final LongSupplier clock;
+    private final MetricsCollector metrics;
 
     public QueryGateway(Database db, AppAuthenticator authenticator, AppRegistry apps,
                         CapabilityCatalog catalog, IdempotencyStore idempotency,
                         AppDailyQuota appQuota, AuditCenter audit,
                         SyncQueryExecutor executor, String selfParty, LongSupplier clock) {
+        this(db, authenticator, apps, catalog, idempotency, appQuota, audit, executor,
+                selfParty, clock, MetricsCollector.NOOP);
+    }
+
+    public QueryGateway(Database db, AppAuthenticator authenticator, AppRegistry apps,
+                        CapabilityCatalog catalog, IdempotencyStore idempotency,
+                        AppDailyQuota appQuota, AuditCenter audit, SyncQueryExecutor executor,
+                        String selfParty, LongSupplier clock, MetricsCollector metrics) {
         this.db = db;
         this.authenticator = authenticator;
         this.apps = apps;
@@ -57,6 +67,7 @@ public final class QueryGateway {
         this.executor = executor;
         this.selfParty = selfParty;
         this.clock = clock;
+        this.metrics = metrics;
     }
 
     public Response handle(PpsRequest req) {
@@ -113,12 +124,16 @@ public final class QueryGateway {
         }
 
         // ── 执行（在配额事务之外；失败则 over-charge，安全方向，M5 §3.3）──
+        metrics.increment("accepted", cap.id());
+        long begin = System.nanoTime();
         try {
             SyncQueryExecutor.QueryResult result = executor.execute(cap, req.body());
             idempotency.complete(req.appId(), req.reqId(), IdempotencyStore.ReqState.SUCCEEDED,
                     serialize(result));
             audit.append(req.reqId(), selfParty, "PPS_QUERY_SUCCEEDED",
                     "{\"appId\": \"%s\", \"hit\": %s}".formatted(req.appId(), result.hit()));
+            metrics.increment("succeeded", cap.id());
+            metrics.recordLatency(cap.id(), (System.nanoTime() - begin) / 1_000_000);
             return new Response(result.hit(), result.value(), false,
                     appQuota.remainingToday(req.appId(), cap.id(), day));
         } catch (RuntimeException e) {
@@ -126,6 +141,7 @@ public final class QueryGateway {
             audit.append(req.reqId(), selfParty, "PPS_QUERY_FAILED",
                     "{\"appId\": \"%s\", \"error\": \"%s\"}"
                             .formatted(req.appId(), safe(e.getMessage())));
+            metrics.increment("failed", cap.id());
             throw new GatewayException(GatewayException.Reason.INTERNAL, "查询执行失败");
         }
     }
