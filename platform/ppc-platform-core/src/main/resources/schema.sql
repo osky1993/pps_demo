@@ -42,6 +42,20 @@ CREATE TABLE IF NOT EXISTS exception_approval (
     PRIMARY KEY (task_id, party)
 );
 
+-- 联邦模型注册表（M3-S2）：模型是出库物，状态流 TRAINED→RELEASE_APPROVED→EXPORTED
+CREATE TABLE IF NOT EXISTS model_registry (
+    task_id       VARCHAR(64)  PRIMARY KEY,
+    fate_job_id   VARCHAR(64)  NOT NULL,
+    fate_model_id VARCHAR(256),
+    fate_model_version VARCHAR(64),
+    algorithm     VARCHAR(64)  NOT NULL,
+    auc           DOUBLE PRECISION,
+    model_sha256  VARCHAR(64),
+    state         VARCHAR(32)  NOT NULL,          -- TRAINED | RELEASE_APPROVED | EXPORTED
+    created_at    TIMESTAMP    NOT NULL,
+    updated_at    TIMESTAMP    NOT NULL
+);
+
 -- append-only 审计事件 + 哈希链（篡改即断链）
 CREATE TABLE IF NOT EXISTS audit_event (
     seq        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ppcdemo</groupId>
+        <artifactId>ppc-demo</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ppc-platform-fate</artifactId>
+    <name>ppc-platform-fate</name>
+    <description>M3：FATE 联邦训练适配器（FateFlowClient REST、TrainingSpec 模板、FedTrainingOrchestrator）。
+        FATE 是部署物不是依赖——本模块纯 Java 17，仅经 HTTP 与本方 FATE Flow 交互。</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ppcdemo</groupId>
+            <artifactId>ppc-platform-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>
