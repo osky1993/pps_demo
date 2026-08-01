@@ -1,0 +1,13 @@
+# B 方节点配置样例（netty PSI client 半边）
+party:
+  role: client
+  local: 0.0.0.0:19002
+  peer: node-a:19001
+
+dataset:
+  profile: S
+  seed: 20260801
+  intersectionRatio: 0.50
+
+psi:
+  protocol: rr22

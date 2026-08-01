@@ -1,0 +1,38 @@
+# 双节点样例（同宿主演示拓扑）。真实双机：各机只起本方服务，peer 地址改对方 IP。
+# 协议面端口（netty PSI）：node-a 19001 / node-b 19002；控制面 mTLS 端口：18001/18002。
+services:
+  node-a:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: ppc-node-a
+    entrypoint: ["java", "--enable-preview", "--add-modules", "jdk.incubator.vector",
+                 "-cp", "/opt/ppc/lib/*", "com.ppcdemo.psi.NettyPsiPartyMain",
+                 "/etc/ppc/node-a.yaml"]
+    volumes:
+      - ./node-a.yaml:/etc/ppc/node-a.yaml:ro
+      - ./certs:/etc/ppc/certs:ro
+    ports:
+      - "19001:19001"
+      - "18001:18001"
+    networks: [ppc]
+
+  node-b:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: ppc-node-b
+    entrypoint: ["java", "--enable-preview", "--add-modules", "jdk.incubator.vector",
+                 "-cp", "/opt/ppc/lib/*", "com.ppcdemo.psi.NettyPsiPartyMain",
+                 "/etc/ppc/node-b.yaml"]
+    volumes:
+      - ./node-b.yaml:/etc/ppc/node-b.yaml:ro
+      - ./certs:/etc/ppc/certs:ro
+    ports:
+      - "19002:19002"
+      - "18002:18002"
+    depends_on: [node-a]
+    networks: [ppc]
+
+networks:
+  ppc: {}

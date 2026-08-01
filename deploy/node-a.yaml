@@ -1,0 +1,13 @@
+# A 方节点配置样例（netty PSI server 半边）
+party:
+  role: server
+  local: 0.0.0.0:19001
+  peer: node-b:19002        # 真实双机改对方 IP:端口
+
+dataset:
+  profile: S
+  seed: 20260801            # 双方必须一致
+  intersectionRatio: 0.50
+
+psi:
+  protocol: rr22
