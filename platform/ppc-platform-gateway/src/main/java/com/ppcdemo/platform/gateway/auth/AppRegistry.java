@@ -109,6 +109,19 @@ public final class AppRegistry {
         });
     }
 
+    /**
+     * 代应用签名（回调用，M5-P2）：解封密钥后签名，使业务系统能验证回调确实来自 PPS。
+     * 密钥只在方法内短暂存在。应用不存在返回 null。
+     */
+    public String signForApp(String appId, String canonical) {
+        return db.inTransaction(conn -> selectApp(conn, appId)
+                .map(row -> {
+                    byte[] secret = envelope.unseal(Base64.getDecoder().decode(row.sealed()));
+                    return HmacSigner.sign(new String(secret, StandardCharsets.UTF_8), canonical);
+                })
+                .orElse(null));
+    }
+
     /** 验签：内部解封密钥、常量时间比较，密钥不外泄。应用不存在或非 ACTIVE 直接返回 false。 */
     public boolean verifySignature(String appId, String canonical, String presented) {
         return db.inTransaction(conn -> selectApp(conn, appId)

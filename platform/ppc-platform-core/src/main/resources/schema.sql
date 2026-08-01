@@ -76,15 +76,28 @@ CREATE TABLE IF NOT EXISTS pps_app_grant (
 );
 
 -- 幂等台账：业务系统的 reqId 唯一，重放返回原结果（副作用不可逆，幂等是正确性要求）
+-- 同步查询与异步作业共用；异步作业的 reqId 即 jobId。
 CREATE TABLE IF NOT EXISTS pps_request (
-    app_id     VARCHAR(64)  NOT NULL,
-    req_id     VARCHAR(128) NOT NULL,
-    capability VARCHAR(64)  NOT NULL,
-    task_id    VARCHAR(64),
-    state      VARCHAR(16)  NOT NULL,           -- ACCEPTED | SUCCEEDED | FAILED
-    result_ref VARCHAR(2048),
-    created_at TIMESTAMP    NOT NULL,
+    app_id       VARCHAR(64)  NOT NULL,
+    req_id       VARCHAR(128) NOT NULL,
+    capability   VARCHAR(64)  NOT NULL,
+    task_id      VARCHAR(64),
+    state        VARCHAR(16)  NOT NULL,         -- ACCEPTED | RUNNING | SUCCEEDED | FAILED
+    result_ref   VARCHAR(2048),                 -- 小结果内联；大结果为分档标记
+    result_kind  VARCHAR(16),                   -- INLINE | PAGED | REF（M5-P2 结果三档）
+    callback_url VARCHAR(1024),                 -- 异步作业终态回调（可空）
+    fail_reason  VARCHAR(1024),
+    created_at   TIMESTAMP    NOT NULL,
     PRIMARY KEY (app_id, req_id)
+);
+
+-- 异步作业的大结果（PAGED 档）：逐行存储，按 line_no 分页拉取
+CREATE TABLE IF NOT EXISTS pps_job_result (
+    app_id   VARCHAR(64)  NOT NULL,
+    req_id   VARCHAR(128) NOT NULL,
+    line_no  INT          NOT NULL,
+    line     VARCHAR(4096) NOT NULL,
+    PRIMARY KEY (app_id, req_id, line_no)
 );
 
 -- append-only 审计事件 + 哈希链（篡改即断链）

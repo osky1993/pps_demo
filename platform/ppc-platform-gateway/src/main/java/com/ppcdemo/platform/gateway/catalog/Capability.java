@@ -18,7 +18,8 @@ public record Capability(
         String outputGranularity, // 输出粒度，业务不可见
         int valueBits,            // PIR value 比特长度
         long datasetDailyQuota,   // 数据集级配额
-        long perAppDailyQuota) {  // 应用级配额
+        long perAppDailyQuota,    // 应用级配额
+        int maxConcurrency) {     // 并发闸（大任务 1-2，轻任务可高；M5-P2）
 
     public enum Mode { SYNC_QUERY, ASYNC_JOB, ONLINE_INFERENCE }
 

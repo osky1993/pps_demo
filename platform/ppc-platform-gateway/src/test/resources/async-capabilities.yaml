@@ -1,0 +1,27 @@
+# M5-P2 测试能力目录：异步作业
+capabilities:
+  - id: joint-stats
+    displayName: "联合统计"
+    mode: ASYNC_JOB
+    taskType: JOINT_STATS
+    protocol: rr22
+    partner: B-shop
+    dataset: ds://A/customers
+    outputGranularity: NOISED_SCALAR
+    maxConcurrency: 1          # 并发闸测试：单能力串行
+    quota:
+      datasetDaily: 1000
+      perAppDaily: 20
+
+  - id: psi-match
+    displayName: "隐私求交"
+    mode: ASYNC_JOB
+    taskType: PSI
+    protocol: rr22
+    partner: B-shop
+    dataset: ds://A/ids
+    outputGranularity: INTERSECTION_DETAIL
+    maxConcurrency: 4
+    quota:
+      datasetDaily: 1000
+      perAppDaily: 20

@@ -60,6 +60,56 @@ public final class PpsClient {
         this.secret = secret;
     }
 
+    public record JobHandle(String jobId, String state) {
+    }
+
+    public record JobStatus(String jobId, String state, String resultKind, String summary) {
+    }
+
+    /** 提交异步作业（M5 §3.1 模式 B），立即返回 jobId；@param callbackUrl 可空（仅轮询）。 */
+    public JobHandle submit(String capability, String params, String requestId, String callbackUrl) {
+        long ts = System.currentTimeMillis();
+        String nonce = UUID.randomUUID().toString();
+        String canonical = HmacSigner.canonical(appId, ts, nonce, capability, requestId, params);
+        String signature = HmacSigner.sign(secret, canonical);
+        StringBuilder body = new StringBuilder("""
+                appId=%s
+                capability=%s
+                reqId=%s
+                timestamp=%d
+                nonce=%s
+                body=%s
+                signature=%s
+                """.formatted(appId, capability, requestId, ts, nonce, params, signature));
+        if (callbackUrl != null) {
+            body.append("callbackUrl=").append(callbackUrl).append('\n');
+        }
+        Properties p = post("/pps/v1/jobs", body.toString(), null);
+        return new JobHandle(p.getProperty("jobId"), p.getProperty("state"));
+    }
+
+    /** 轮询作业状态（回调兜底）。 */
+    public JobStatus getJob(String jobId) {
+        Properties p = get("/pps/v1/jobs/" + jobId, appId);
+        return new JobStatus(p.getProperty("jobId"), p.getProperty("state"),
+                emptyToNull(p.getProperty("resultKind", "")), p.getProperty("summary"));
+    }
+
+    /** 拉取结果一页（PAGED 档；INLINE 一次返回）。返回 lines 与 nextCursor/hasMore。 */
+    public java.util.Map<String, String> getResult(String jobId, int cursor, int limit) {
+        Properties p = get("/pps/v1/jobs/" + jobId + "/result?cursor=" + cursor + "&limit=" + limit, appId);
+        return java.util.Map.of("lines", p.getProperty("lines", ""),
+                "nextCursor", p.getProperty("nextCursor", "0"),
+                "hasMore", p.getProperty("hasMore", "false"));
+    }
+
+    /** 业务系统验证回调确实来自 PPS（用同一 appSecret 验签）。 */
+    public boolean verifyCallback(String jobId, String state, String summary,
+                                  long timestamp, String nonce, String signature) {
+        String canonical = HmacSigner.canonical(appId, timestamp, nonce, jobId, state, summary);
+        return HmacSigner.verify(secret, canonical, signature);
+    }
+
     /** @param requestId 幂等键（业务单据号）——带同一 requestId 重试保证不重复执行 */
     public QueryResult query(String capability, String key, String requestId) {
         long ts = System.currentTimeMillis();
@@ -93,6 +143,46 @@ public final class PpsClient {
                     emptyToNull(p.getProperty("value", "")),
                     Boolean.parseBoolean(p.getProperty("replayed", "false")),
                     Double.parseDouble(p.getProperty("appQuotaRemaining", "0")));
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new PpsCallException(503, "网络异常：" + e.getMessage());
+        }
+    }
+
+    // ── 共享 HTTP 辅助 ──
+
+    private Properties post(String path, String body, String appIdHeader) {
+        try {
+            HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(endpoint + path))
+                    .header("Content-Type", "text/plain; charset=utf-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                    .timeout(Duration.ofSeconds(30));
+            if (appIdHeader != null) {
+                b.header("X-App-Id", appIdHeader);
+            }
+            return send(b.build());
+        } catch (PpsCallException e) {
+            throw e;
+        }
+    }
+
+    private Properties get(String path, String appIdHeader) {
+        return send(HttpRequest.newBuilder(URI.create(endpoint + path))
+                .header("X-App-Id", appIdHeader).GET().timeout(Duration.ofSeconds(30)).build());
+    }
+
+    private Properties send(HttpRequest request) {
+        try {
+            HttpResponse<String> resp = http.send(request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            Properties p = new Properties();
+            p.load(new java.io.StringReader(resp.body()));
+            if (resp.statusCode() != 200) {
+                throw new PpsCallException(resp.statusCode(), p.getProperty("error", resp.body()));
+            }
+            return p;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();

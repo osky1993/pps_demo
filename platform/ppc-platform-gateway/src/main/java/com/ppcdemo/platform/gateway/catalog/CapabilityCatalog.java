@@ -56,7 +56,8 @@ public final class CapabilityCatalog {
                     str(c, "dataset"), str(c, "outputGranularity"),
                     intVal(c, "valueBits", 128),
                     longVal(quota, "datasetDaily", 100_000),
-                    longVal(quota, "perAppDaily", 10_000));
+                    longVal(quota, "perAppDaily", 10_000),
+                    intVal(c, "maxConcurrency", 4));
             catalog.byId.put(capability.id(), capability);
         }
         return catalog;

@@ -341,6 +341,25 @@ capability:
 → 返回 user-7 真值 score-607，appId 入审计、查询键不入审计、征信方 `queryContentVisible:false`）。
 全量 84 项测试全绿。
 
+## P2 实施纪要（2026-08-02）
+
+异步作业机制（修 G3 同步阻塞）：
+
+| 组件 | 职责 |
+|---|---|
+| `AsyncJobGateway` | 受理即返回 jobId（幂等认领+应用配额+回调地址+审计，同事务提交后立即返回）；后台工作池执行 |
+| 每能力 `Semaphore` 并发闸 | 大任务 maxConcurrency=1-2、轻任务高并发——防单能力打爆引擎 |
+| `CallbackSender` | 终态回调 HMAC 签名（业务系统用同一 secret 验证）+ 指数退避重试 5 次；不可达不影响作业 |
+| `JobRepository` 结果三档 | 小结果 INLINE、大结果 PAGED（逐行存、按 line_no 分页）；REF 档以 PAGED 受控访问等价 |
+| SDK submit/getJob/getResult/verifyCallback | 提交即返回；轮询兜底；回调验签 |
+
+**为什么不引 MQ**（§3.4 决策的代码印证）：单节点 DB 状态机 + `newCachedThreadPool` + 每能力
+Semaphore 即满足受理/并发/隔离，零中间件运维负担。规模上来再演进，SDK 接口不变。
+
+**门禁**：异步机制 6 项（受理即返回/分页/**并发闸实测至多 1**/幂等不重跑/**回调 2 失败+1 成功且验签**/
+错误码）+ **活体门禁**（SDK 提交异步 PSI → 后台真实求交 → 签名回调 → 交集 5000 条与真值一致）。
+全量 91 项测试全绿。
+
 ---
 
 ## 7. 结论
