@@ -1,0 +1,3 @@
+[submodule "third_party/mpc4j"]
+	path = third_party/mpc4j
+	url = https://github.com/alibaba-edu/mpc4j.git

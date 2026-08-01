@@ -2,7 +2,6 @@ target/
 *.class
 bench-result.csv
 e2e-audit-*.json
-third_party/
 .idea/
 *.iml
 .DS_Store
